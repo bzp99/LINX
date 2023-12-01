@@ -1,0 +1,214 @@
+LDX (Language for Data Exploration) is a specification language that extends Tregex,
+a query language for tree-structured data. It allows you to partially specify structural properties of a tree,
+as well as the nodes' labels, using continuity variables (placeholders) which are determined during runtime.
+The language is especially useful for specifying the order of notebook's query operations and their type and parameters.
+LDX supported operators are filter (F) and groupby with aggregation (G).
+
+Here are examples how to convert Pandas code to LDX:
+
+Pandas:
+       df = pd.read_csv("dataset.tsv", delimiter="\t")
+       average = df[<COL>].mean()
+LDX:
+        BEGIN CHILDREN {A1}
+        A1 LIKE [G,.*,mean,<COL>]
+
+Pandas:
+       df = pd.read_csv("dataset.tsv", delimiter="\t")
+
+       do_some_operations()
+
+       some_filter = df[df[<COL>] == <VALUE>]
+LDX:
+        BEGIN DESCENDANTS {A1}
+        A1 LIKE [F,<COL>,eq,<VALUE>]
+
+Pandas:
+        df = pd.read_csv("epic_games.tsv", delimiter="\t")
+
+        some_platform = df[df['platform'] == <VALUE>]
+        other_platforms = df[df['platform'] != <VALUE>]
+
+        some_platform_agg = some_platform.groupby(<COL>).agg(<AGG>)
+        other_platforms_agg = other_platforms.groupby(<COL>).agg(<AGG>)
+
+        # compare the two aggregations
+        comparison = pd.concat([some_platform_agg, other_platforms_agg], axis=1)
+LDX:
+      BEGIN CHILDREN {A1,A2}
+      A1 LIKE [F,platform,eq,<VALUE>] and CHILDREN {B1}
+          B1 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+      A2 LIKE [F,platform,ne,<VALUE>] and CHILDREN {B2}
+          B2 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+explanation:
+1. loading the dataset into df is converted to the BEGIN node which doesn't do any analytic operation.
+2. some_platform and other_platforms are both using df, so they are converted to two children A1,A2 of df corresponding node which is BEGIN.
+3. some_platform_agg is using some_platform, so it would be a node of A1, naming it B1.
+4. other_platforms_agg is using other_platforms, so it would be a node of A2, naming it B2.
+5. concatenating isn't supported (only filter and groupby are supported), therefore the last pandas line is ignored.
+
+Pandas:
+       df = pd.read_csv("ds_salaries.tsv", delimiter="\t")
+       greater_than_219000 = df[df['salary_in_usd'] > 219000]
+       properties1 = greater_than_219000.groupby(<COL1>).agg(<AGG1>)
+       focus_of_col1 = greater_than_219000[greater_than_219000[<COL1>] == <VALUE1>]
+       properties2 = focus_of_col1.groupby(<COL2>).agg(<AGG2>)
+       focus_of_col2 = focus_of_col1[focus_of_col1[<COL2>] == <VALUE2>]
+LDX:
+        BEGIN CHILDREN {A1}
+        A1 LIKE [F,salary_in_usd,gt,219000] and CHILDREN {B1,B2}
+        B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+        B2 LIKE [F,<COL1>,eq,<VALUE1>] and CHILDREN {C1,C2}
+            C1 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+            C2 LIKE [F,<COL2>,eq,<VALUE2>]
+explanation:
+1. loading the dataset into df is converted to the BEGIN node which doesn't do any analytic operation.
+2. greater_than_219000 is using df, so it's converted to child A1 of df corresponding node, which is BEGIN.
+3. properties1 is using greater_than_219000, so it would be a node of A1, naming it B1.
+4. focus_of_col1 is also using greater_than_219000, so it would be another node of A1, naming it B2.
+5. properties1 is using focus_of_col1, so it would be a node of B2, naming it C1.
+6. focus_of_col2 is also using focus_of_col1, so it would be another node of B2, naming it C2.
+
+Pandas:
+        df = pd.read_csv("intel_processors.tsv", delimiter="\t")
+
+        first_product = df[df['Product'] == <VALUE1>]
+        second_product = df[df['Product'] == <VALUE2>]
+        third_product = df[df['Product'] == <VALUE3>]
+
+        first_product_agg = first_product.groupby(<COL>).agg(<AGG>)
+        second_product_agg = second_product.groupby(<COL>).agg(<AGG>)
+        third_product_agg = third_product.groupby(<COL>).agg(<AGG>)
+LDX:
+      BEGIN CHILDREN {A1,A2,A3}
+      A1 LIKE [F,Product,eq,<VALUE1>] and CHILDREN {B1}
+          B1 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+      A2 LIKE [F,Product,eq,<VALUE2>] and CHILDREN {B2}
+          B2 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+      A3 LIKE [F,Product,eq,<VALUE3>] and CHILDREN {B3}
+          B3 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+explanation:
+1. loading the dataset into df is converted to the BEGIN node which doesn't do any analytic operation.
+2. first_product, second_product and third_product are using df, so they are converted to a three children A1,A2,A3 of df corresponding node, which is BEGIN.
+3. first_product_agg is using first_product, so it would be child of A1, naming it B1.
+4. second_product_agg is using second_product, so it would be child of A2, naming it B2.
+5. third_product_agg is using third_product, so it would be child of A3, naming it B3.
+
+Pandas:
+       df = pd.read_csv("houses.tsv", delimiter="\t")
+
+       first_subset = df[df[<COL1>] == <VALUE1>]
+       first_subset_agg = first_subset.groupby(<AGG_COL1>).agg({'Price': 'mean'})
+
+       second_subset = df[df[<COL2] == <VALUE2>]
+       second_subset_agg = second_subset.groupby(<AGG_COL2>).agg({'Price': 'mean'})
+
+       highest_departure_delay = max(first_subset_agg['Price'], second_subset_agg['Price'])
+LDX:
+      BEGIN CHILDREN {A1,A2}
+      A1 LIKE [F,<COL1>,eq,<VALUE1>] and CHILDREN {B1}
+          B1 LIKE [G,<AGG_COL1>,mean,Price]
+      A2 LIKE [F,<COL2>,eq,<VALUE2>] and CHILDREN {B2}
+          B2 LIKE [G,<AGG_COL2>,mean,Price]
+explanation:
+1. loading the dataset into df is converted to the BEGIN node which doesn't do any analytic operation.
+2. first_subset is using df, so it's converted to a child A1 of df corresponding node, which is BEGIN.
+3. first_subset_agg is using first_subset, so it would be child of A1, naming it B1.
+4. second_subset is also using df, so it's converted to another child A2 of df corresponding node, which is BEGIN.
+5. second_subset_agg is using second_subset, so it would be child of A2, naming it B2.
+6. max isn't a supported operation (only filter and groupby are supported) so the corresponding line is ignored.
+
+Pandas:
+       df = pd.read_csv("emojis.tsv", delimiter="\t")
+
+       emojis_properties_1 = df.groupby(<COL1>).agg(<AGG1>)
+       emojis_properties_2 = df.groupby(<COL2>).agg(<AGG2>)
+
+       2022_emojis = df[df['Year'] == 2022]
+       2022_emojis_properties_1 = 2022_emojis.groupby(<COL1>).agg(<AGG1>)
+       2022_emojis_properties_2 = 2022_emojis.groupby(<COL2>).agg(<AGG2>)
+LDX:
+      BEGIN CHILDREN {A1,A2,A3}
+      A1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+      A2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+      A3 LIKE [F,Year,eq,2022] and CHILDREN {B1,B2}
+          B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+          B2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+explanation:
+1. loading the dataset into df is converted to the BEGIN node which doesn't do any analytic operation.
+2. emojis_properties_1 and emojis_properties_2 are both using df, so they are converted to two children A1,A2 of df corresponding node which is BEGIN.
+3. 2022_emojis is also using df, so it would be another node of BEGIN, naming it A3.
+4. 2022_emojis_properties_1 and 2022_emojis_properties_2 are using 2022_emojis, so they are converted to children of A3, naming them B1,B2.
+
+Pandas:
+       df = pd.read_csv("cars.tsv", delimiter="\t")
+
+       model1 = df[df['model'] == <VALUE1>]
+       model2 = df[df['model'] == <VALUE2>]
+       model3 = df[df['model'] == <VALUE3>]
+
+       model1_properties = model1.groupby(<COL1>).agg(<AGG1>)
+       model2_properties = model2.groupby(<COL2>).agg(<AGG2>)
+       model3_properties = model3.groupby(<COL3>).agg(<AGG3>)
+LDX:
+        BEGIN CHILDREN {A1,A2,A3}
+        A1 LIKE [F,model,eq,<VALUE1>] and CHILDREN {B1}
+            B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+        A2 LIKE [F,model,eq,<VALUE2>] and CHILDREN {B2}
+            B2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+        A3 LIKE [F,model,eq,<VALUE3>] and CHILDREN {B3}
+            B3 LIKE [G,<COL3>,<AGG_FUNC3>,<AGG_COL3>]
+explanation:
+1. loading the dataset into df is converted to the BEGIN node which doesn't do any analytic operation.
+2. model1, model2 and model3 are using df, so they are converted to three children A1,A2,A3 of df corresponding node, which is BEGIN.
+3. model1_properties is using model1, so it would be a child A1, naming it B1.
+4. model2_properties is using model2, so it would be a child A2, naming it B2.
+5. model3_properties is using model3, so it would be a child A3, naming it B3.
+
+Pandas:
+       df = pd.read_csv("spotify.tsv", delimiter="\t")
+
+       do_some_operations()
+
+       drake_songs = df[df['Artist'] == 'Drake']
+
+       drake_songs_properties_1 = drake_songs.groupby(<COL1>).agg(<AGG1>)
+       drake_songs_properties_2 = drake_songs.groupby(<COL2>).agg(<AGG2>)
+LDX:
+        BEGIN DESCENDANTS {A1}
+        A1 LIKE [F,Artist,eq,Drake] and CHILDREN {B1,B2}
+            B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+            B2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+explanation:
+1. loading the dataset into df is converted to the BEGIN node which doesn't do any analytic operation.
+2. do_some_operations() indicates that the next operation would be converted to a descendant and not a direct child, since there are some operations applied between the two.
+3. drake_songs is using df, so it would a be a descendant of df corresponding node, which is BEGIN.
+4. drake_songs_properties_1, drake_songs_properties_2 are using drake_songs, so they would be two children of A1, naming them B1,B2 respectively.
+
+Pandas:
+        df = pd.read_csv("github.tsv", delimiter="\t")
+
+        5_stars_repos = df[df['Stars'] == '5']
+
+        5_stars_repos_grouped = 5_stars_repos.groupby(<COL1>).agg(<AGG1>)
+        5_stars_repos_sub_grouped = 5_stars_repos_grouped.groupby(<COL2>).agg(<AGG2>)
+LDX:
+        BEGIN CHILDREN {A1}
+        A1 LIKE [F,Stars,eq,5] and CHILDREN {B1}
+            B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>] and CHILDREN {C1}
+                C1 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+explanation:
+1. loading the dataset into df is converted to the BEGIN node which doesn't do any analytic operation.
+2. 5_stars_repos is using df, so it would a be a child of df corresponding node, which is BEGIN.
+3. 5_stars_repos_grouped is using 5_stars_repos, so it would a child of A1, naming it B1.
+4. 5_stars_repos_sub_grouped is using 5_stars_repos_grouped, so it would a child of B1, naming it C1.
+
+Now convert the following while making sure '[' is closed by ']' and not by other parenthesis.
+Pandas:
+df = pd.read_csv("netflix.tsv", delimiter="	")
+
+show_1132 = df[df['show_id'] == 1132]
+
+show_1132_properties_1 = show_1132.groupby(<COL1>).agg(<AGG1>)
+show_1132_properties_2 = show_1132.groupby(<COL2>).agg(<AGG2>)
+LDX:

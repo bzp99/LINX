@@ -1,0 +1,149 @@
+LDX (Language for Data Exploration) is a specification language that extends Tregex,
+a query language for tree-structured data. It allows you to partially specify structural properties of a tree,
+as well as the nodes' labels. The language is especially useful for specifying the order of notebook's query
+operations and their type and parameters.
+
+here are some basic examples how to convert tasks to LDX:
+
+task: apply twice the same aggregation and same groupby
+LDX:
+      BEGIN CHILDREN {A1,A2}
+      A1 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+      A2 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+
+task: apply two different aggregations, both grouped by the same column
+LDX:
+      BEGIN CHILDREN {A1,A2}
+      A1 LIKE [G,<COL>,<AGG_FUNC1>,<AGG_COL1>]
+      A2 LIKE [G,<COL>,<AGG_FUNC2>,<AGG_COL2>]
+
+task: group by separately by two different columns, both aggregated with the same aggregation
+LDX:
+      BEGIN CHILDREN {A1,A2}
+      A1 LIKE [G,<COL1>,<AGG_FUNC>,<AGG_COL>]
+      A2 LIKE [G,<COL2>,<AGG_FUNC>,<AGG_COL>]
+
+task: apply two completely different aggregations
+LDX:
+      BEGIN CHILDREN {A1,A2}
+      A1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+      A2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+
+task: filter attribute ATT to some value
+LDX:
+      BEGIN CHILDREN {A1}
+      A1 LIKE [F,ATT,eq,<VALUE>]
+
+task: make sure at some point to filter attribute ATT to some value, there might be other operations before that.
+LDX:
+      BEGIN DESCENDANTS {A1}
+      A1 LIKE [F,ATT,eq,<VALUE>]
+
+here are more complex examples how to convert tasks to LDX, given from_boston.tsv dataset, scheme ['flight_id', 'airline', 'origin_airport', 'destination_airport', 'flight_number', 'delay_reason', 'departure_delay', 'scheduled_trip_time', 'scheduled_departure', 'scheduled_arrival', 'day_of_week', 'day_of_month', 'month'] and sample:
+  flight_id airline origin_airport destination_airport  flight_number delay_reason departure_delay scheduled_trip_time scheduled_departure scheduled_arrival  day_of_week  day_of_month  month
+ 65        NK      BOS            MYR                  103           NaN          ON_TIME          MID_FLIGHT         NIGHT               MORNING           4            1             1
+ 71        AA      BOS            MIA                 2454           NaN          ON_TIME         LONG_FLIGHT         NIGHT               MORNING           4            1             1
+104        B6      BOS            BWI                  727           NaN          ON_TIME          MID_FLIGHT         NIGHT               MORNING           4            1             1
+108        DL      BOS            DTW                 2079           NaN          ON_TIME          MID_FLIGHT         NIGHT               MORNING           4            1             1
+121        B6      BOS            PBI                  721           NaN          ON_TIME         LONG_FLIGHT         NIGHT               MORNING           4            1             1     :
+
+task: find one flight delay reason which has one different property compared to all the other flight delay reasons
+
+LDX:
+    BEGIN CHILDREN {A1,A2}
+    A1 LIKE [F,delay_reason,eq,<VALUE>] and CHILDREN {B1}
+      B1 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+    A2 LIKE [F,delay_reason,ne,<VALUE>] and CHILDREN {B2}
+      B2 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+
+explanation: Split the flights to two sets - one with a certain delay reason origin airport and one with the other delay reasons.
+Then apply the same aggregation on both of them in order to compare them.
+
+task: investigate what makes flights to have large delay and drill down to a specific reason
+
+LDX:
+    BEGIN CHILDREN {A1}
+    A1 LIKE [F,delay_duration,eq,LARGE_DELAY] and CHILDREN {B1,B2}
+    B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+    B2 LIKE [F,<COL1>,eq,<VALUE1>] and CHILDREN {C1,C2}
+        C1 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+        C2 LIKE [F,<COL2>,eq,<VALUE2>]
+
+explanation: filter the flights for those with large delay.
+Then, group according to some column and apply some aggregation in order to find some column that significantly influences the distribution of those flights.
+After that filter on one of the values of the selected column from the previous step. Repeat it once again to drill down more.
+
+task: compare some three different subsets of delay reasons according to some properties
+
+LDX:
+    BEGIN CHILDREN {A1,A2,A3}
+    A1 LIKE [F,delay_reason,eq,<VALUE1>] and CHILDREN {B1}
+      B1 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+    A2 LIKE [F,delay_reason,eq,<VALUE2>] and CHILDREN {B2}
+      B2 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+    A3 LIKE [F,delay_reason,eq,<VALUE3>] and CHILDREN {B3}
+      B3 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+
+explanation: Split the flights to three sets, each one filtered to a different delay reason.
+Then apply the same aggregation on each of them in order to compare them.
+
+task: show the average departure delay of some two different subsets of flights
+
+LDX:
+    BEGIN CHILDREN {A1,A2}
+    A1 LIKE [F,<COL1>,eq,<VALUE1>] and CHILDREN {B1}
+      B1 LIKE [G,<AGG_COL1>,mean,departure_delay]
+    A2 LIKE [F,<COL2>,eq,<VALUE2>] and CHILDREN {B2}
+      B2 LIKE [G,<AGG_COL2>,mean,departure_delay]
+
+explanation: filter the flights to some column and some of its values.
+Then, group the flights according to some column and calculate the average departure delay. Do so one more time but on different subset of the flights.
+
+task: show two properties of flights with departure delay compared to all the flights
+
+LDX:
+    BEGIN CHILDREN {A1,A2,A3}
+    A1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+    A2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+    A3 LIKE [F,departure_delay,ne,ON_TIME] and CHILDREN {B1,B2}
+      B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+      B2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+
+explanation: Apply two aggregations. Also filter the original data to flights didn't depart on time and apply the same two aggregations in order to compare it to the previous step.
+
+task: explore three different origin airports in different ways
+
+LDX:
+    BEGIN CHILDREN {A1,A2,A3}
+    A1 LIKE [F,origin_airport,eq,<VALUE1>] and CHILDREN {B1}
+        B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+    A2 LIKE [F,origin_airport,eq,<VALUE2>] and CHILDREN {B2}
+        B2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+    A3 LIKE [F,origin_airport,eq,<VALUE3>] and CHILDREN {B3}
+        B3 LIKE [G,<COL3>,<AGG_FUNC3>,<AGG_COL3>]
+
+explanation: filter to three different origin airports and for each one show some properties.
+
+task: explore the data, make sure to address two interesting aspects of flights with month equals 7
+
+LDX:
+    BEGIN DESCENDANTS {A1}
+    A1 LIKE [F,month,eq,7] and CHILDREN {B1,B2}
+        B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+        B2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+
+explanation: Use descendant in order to filter month to July at some point. Then, show two different properties using two different group by operations.
+
+task: show interesting sub-groups of flights to JFK
+LDX:
+    BEGIN CHILDREN {A1}
+    A1 LIKE [F,destination_airport,eq,JFK] and CHILDREN {B1}
+        B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>] and CHILDREN {C1}
+            C1 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+explanation: Filter to flights JFK as destination airport.
+Then apply some groupby to view it as interesting groups, and apply another different groupby to view interesting sub-groups.
+
+now convert the following task to LDX according to the given scheme, and add explanation.
+
+task: Find a destination airport that has a distinct property compared to the other destination airports.
+LDX:

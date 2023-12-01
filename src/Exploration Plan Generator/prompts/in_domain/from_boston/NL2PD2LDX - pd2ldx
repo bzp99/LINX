@@ -1,0 +1,164 @@
+LDX (Language for Data Exploration) is a specification language that extends Tregex,
+a query language for tree-structured data. It allows you to partially specify structural properties of a tree,
+as well as the nodes' labels, using continuity variables (placeholders) which are determined during runtime.
+The language is especially useful for specifying the order of notebook's query operations and their type and parameters.
+LDX supported operators are filter (F) and groupby with aggregation (G).
+
+Here are examples how to convert Pandas code to LDX:
+
+Pandas:
+       df = pd.read_csv("dataset.tsv", delimiter="\t")
+       average = df[<COL>].mean()
+LDX:
+        BEGIN CHILDREN {A1}
+        A1 LIKE [G,.*,mean,<COL>]
+
+Pandas:
+       df = pd.read_csv("dataset.tsv", delimiter="\t")
+
+       do_some_operations()
+
+       some_filter = df[df[<COL>] == <VALUE>]
+LDX:
+        BEGIN DESCENDANTS {A1}
+        A1 LIKE [F,<COL>,eq,<VALUE>]
+
+Pandas:
+        df = pd.read_csv("from_boston.tsv", delimiter="\t")
+
+        some_delay_reason = df[df['delay_reason'] == <VALUE>]
+        other_delay_reason = df[df['delay_reason'] != <VALUE>]
+
+        some_delay_reason_agg = some_delay_reason.groupby(<COL>).agg(<AGG>)
+        other_delay_reason_agg = other_delay_reason.groupby(<COL>).agg(<AGG>)
+
+        # compare the two aggregations
+        comparison = pd.concat([some_delay_reason_agg, other_delay_reason_agg], axis=1)
+LDX:
+        BEGIN CHILDREN {A1,A2}
+        A1 LIKE [F,delay_reason,eq,<VALUE>] and CHILDREN {B1}
+          B1 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+        A2 LIKE [F,delay_reason,ne,<VALUE>] and CHILDREN {B2}
+          B2 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+
+Pandas:
+    df = pd.read_csv("from_boston.tsv", delimiter="\t")
+    large_delay_flights = df[df['delay_duration'] == LARGE_DELAY]
+    flights_properties1 = large_delay_flights.groupby(<COL1>).agg(<AGG1>)
+    focus_of_col1 = large_delay_flights[large_delay_flights[<COL1>] == <VALUE1>]
+    flights_properties2 = focus_of_col1.groupby(<COL2>).agg(<AGG2>)
+    focus_of_col2 = focus_of_col1[focus_of_col1[<COL2>] == <VALUE2>]
+LDX:
+        BEGIN CHILDREN {A1}
+        A1 LIKE [F,delay_duration,eq,LARGE_DELAY] and CHILDREN {B1,B2}
+        B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+        B2 LIKE [F,<COL1>,eq,<VALUE1>] and CHILDREN {C1,C2}
+            C1 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+            C2 LIKE [F,<COL2>,eq,<VALUE2>]
+
+Pandas:
+    df = pd.read_csv("from_boston.tsv", delimiter="\t")
+
+    first_delay_reason = df[df['delay_reason'] == <VALUE1>]
+    second_delay_reason = df[df['delay_reason'] == <VALUE2>]
+    third_delay_reason = df[df['delay_reason'] == <VALUE3>]
+
+    first_delay_reason_agg = first_delay_reason.groupby(<COL>).agg(<AGG>)
+    second_delay_reason_agg = second_delay_reason.groupby(<COL>).agg(<AGG>)
+    third_delay_reason_agg = third_delay_reason.groupby(<COL>).agg(<AGG>)
+LDX:
+    BEGIN CHILDREN {A1,A2,A3}
+    A1 LIKE [F,delay_reason,eq,<VALUE1>] and CHILDREN {B1}
+      B1 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+    A2 LIKE [F,delay_reason,eq,<VALUE2>] and CHILDREN {B2}
+      B2 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+    A3 LIKE [F,delay_reason,eq,<VALUE3>] and CHILDREN {B3}
+      B3 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+
+Pandas:
+        df = pd.read_csv("from_boston.tsv", delimiter="\t")
+
+        first_subset = df[df[<COL1>] == <VALUE1>]
+        first_subset_agg = first_subset.groupby(<AGG_COL1>).agg({'departure_delay': 'mean'})
+
+        second_subset = df[df[<COL2] == <VALUE2>]
+        second_subset_agg = second_subset.groupby(<AGG_COL2>).agg({'departure_delay': 'mean'})
+
+        highest_departure_delay = max(first_subset_agg['departure_delay'], second_subset_agg['departure_delay'])
+LDX:
+        BEGIN CHILDREN {A1,A2}
+        A1 LIKE [F,<COL1>,eq,<VALUE1>] and CHILDREN {B1}
+          B1 LIKE [G,<AGG_COL1>,mean,departure_delay]
+        A2 LIKE [F,<COL2>,eq,<VALUE2>] and CHILDREN {B2}
+          B2 LIKE [G,<AGG_COL2>,mean,departure_delay]
+
+Pandas:
+        df = pd.read_csv("from_boston.tsv", delimiter="\t")
+
+        flights_properties_1 = df.groupby(<COL1>).agg(<AGG1>)
+        flights_properties_2 = df.groupby(<COL2>).agg(<AGG2>)
+
+        flights_with_departure_delay = df[df['departure_delay'] != 'ON_TIME']
+        flights_with_departure_delay_properties1 = flights_with_departure_delay.groupby(<COL1>).agg(<AGG1>)
+        flights_with_departure_delay_properties2 = flights_with_departure_delay.groupby(<COL2>).agg(<AGG2>)
+LDX:
+        BEGIN CHILDREN {A1,A2,A3}
+        A1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+        A2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+        A3 LIKE [F,departure_delay,eq,ON_TIME] and CHILDREN {B1,B2}
+          B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+          B2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+
+Pandas:
+    flights_origin_airport1 = df[df['origin_airport'] == <VALUE1>]
+    flights_origin_airport2 = df[df['origin_airport'] == <VALUE2>]
+    flights_origin_airport3 = df[df['origin_airport'] == <VALUE3>]
+
+    flights_origin_airport1_properties = flights_origin_airport1.groupby(<COL1>).agg(<AGG1>)
+    flights_origin_airport2_properties = flights_origin_airport2.groupby(<COL2>).agg(<AGG2>)
+    flights_origin_airport3_properties = flights_origin_airport3.groupby(<COL3>).agg(<AGG3>)
+LDX:
+    BEGIN CHILDREN {A1,A2,A3}
+    A1 LIKE [F,origin_airport,eq,<VALUE1>] and CHILDREN {B1}
+        B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+    A2 LIKE [F,origin_airport,eq,<VALUE2>] and CHILDREN {B2}
+        B2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+    A3 LIKE [F,origin_airport,eq,<VALUE3>] and CHILDREN {B3}
+        B3 LIKE [G,<COL3>,<AGG_FUNC3>,<AGG_COL3>]
+
+Pandas:
+    df = pd.read_csv("from_boston.tsv", delimiter="\t")
+
+    do_some_operations()
+
+    july_flights = df[df['month'] == 7]
+
+    july_flights_properties_1 = july_flights.groupby(<COL1>).agg(<AGG1>)
+    july_flights_properties_2 = july_flights.groupby(<COL2>).agg(<AGG2>)
+LDX:
+    BEGIN DESCENDANTS {A1}
+    A1 LIKE [F,month,eq,7] and CHILDREN {B1,B2}
+        B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+        B2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+
+Pandas:
+    df = pd.read_csv("from_boston.tsv", delimiter="\t")
+
+    jfk_flights = df[df['destination_airport'] == 'JFK']
+
+    jfk_agg = jfk_flights.groupby(<COL1>).agg(<AGG1>)
+
+    jfk_sub_agg = jfk_agg.groupby(<COL2>).agg(<AGG2>)
+LDX:
+    BEGIN CHILDREN {A1}
+    A1 LIKE [F,destination_airport,eq,JFK] and CHILDREN {B1}
+        B1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>] and CHILDREN {C1}
+            C1 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+
+Now convert the following while making sure '[' is closed by ']' and not by other parenthesis.
+Pandas:
+df = pd.read_csv("from_boston.tsv", delimiter="	")
+
+distinct_destination_airport = df.groupby('destination_airport').agg(<AGG>)
+other_destination_airport = df.groupby('destination_airport').agg(<AGG>)
+LDX:
