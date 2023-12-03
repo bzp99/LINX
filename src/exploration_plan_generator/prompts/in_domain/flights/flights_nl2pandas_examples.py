@@ -1,4 +1,4 @@
-from_boston_nl2pandas_examples = {
+flights_nl2pandas_examples = {
     1:
     """
 task: find one flight delay reason which has one different property compared to all the other flight delay reasons

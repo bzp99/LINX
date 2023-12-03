@@ -1,35 +1,21 @@
 import re
-import time
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections import Counter
 
-from openai.error import RateLimitError
 
 from exploration_plan_generator.clients.abstact_llm_client import AbstractLLMClient
+from nl2ldx_benchmark.evaulation.benchmark_model_api import BenchmarkModelAPI
 
+SYSTEM_MESSAGE = "You are an AI assistant for converting tasks in natural language to LDX"
 
-class AbstractTranslationModel(ABC):
+class AbstractModel(BenchmarkModelAPI, ABC):
 
     def __int__(self, llm_client: AbstractLLMClient):
         self.llm_client = llm_client
         self.first_prompt = ""
 
     def __str__(self):
-        return type(self).__name__ + "-" + self.llm_client.model
-
-    @abstractmethod
-    def nl2ldx(self, dataset_name, scheme, sample, task, excludes_examples_ids, is_multi_domain):
-        pass
-
-    def nl2ldx_wrapper(self, dataset, scheme, sample, task, exclude_examples_ids=[], is_out_domain=True):
-        try:
-            return self.nl2ldx(dataset, scheme, sample, task, exclude_examples_ids, is_out_domain)
-        except RateLimitError as rle:
-            sleep = 50
-            print(rle)
-            print(f"waiting {sleep} seconds.")
-            time.sleep(sleep)
-            return self.nl2ldx(dataset, scheme, sample, task, exclude_examples_ids, is_out_domain)
+        return type(self).__name__ + "-" + self.llm_client.__str__()
 
     def ldx_post_proccessing(self, ldx_generated):
         # post-processioning
@@ -44,14 +30,15 @@ class AbstractTranslationModel(ABC):
         ldx_generated = ldx_generated.replace(".*,.*,.*", ".*")
         ldx_generated = ldx_generated.replace(".*,.*", ".*")
 
-        # TODO change <A1,A2> to {A1,A2} in all pandas2ldx examples, then code here conversion '{' -> '>' before exiting
-        # ldx_generated = ldx_generated.replace("{", "<").replace("}", ">")
-
         # remove explanation from the answer
         exp_index = ldx_generated.lower().find("explanation")
         if exp_index != -1:
             ldx_generated = ldx_generated[:exp_index]
 
+        if ldx_generated.startswith("LDX:"):
+            ldx_generated = ldx_generated[4:]
+
+        ldx_generated = ldx_generated.replace(")}", ")]")
         return ldx_generated
 
     def construct_request(self, dataset_name, scheme, examples, sample, task):

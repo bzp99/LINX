@@ -18,8 +18,9 @@ ipython==7.21.0
 tensorboardX==2.1
 anytree==2.8.0
 ply==3.11
-openai==0.27.8
+openai==0.23.1
 python-Levenshtein==0.23.0
 together==0.2.6
 ujson==5.8.0
 jupyter==1.0.0
+tenacity==3.2.0

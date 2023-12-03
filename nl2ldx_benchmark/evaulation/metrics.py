@@ -4,7 +4,7 @@ from typing import Any
 
 import Levenshtein
 import zss
-from zss import simple_distance, Node
+from zss import Node
 
 from nl2ldx_benchmark.evaulation.xted_utils import zss_representation, ZssNode, zss_label_distance
 
@@ -12,28 +12,24 @@ from nl2ldx_benchmark.evaulation.xted_utils import zss_representation, ZssNode, 
 class Metrics:
     def __init__(self):
         self.count = 0
-        self.nodes_score = 0
-        self.nodes_cross_score = 0
-        self.structure_score = 0
-        self.structure_score_zss = 0
-        self.action_dist = 0
+        self.nodes_jaccard_score = 0
+        self.nodes_levenshtein_score = 0
+        self.structure_levenshtein_score = 0
+        self.xted_score = 0
 
     def __str__(self):
         return f"""count: {self.count},
-        structure_levinshtein_score: {self.structure_score},
-        structure_zss_score: {self.structure_score_zss},
-        nodes_jaccard_score: {self.nodes_score},
-        nodes_cross_levinshtein_score: {self.nodes_cross_score},
-        action_dist: {self.action_dist}\n"""
+        structure_levenshtein_score: {self.structure_levenshtein_score},
+        nodes_jaccard_score: {self.nodes_jaccard_score},
+        nodes_cross_levenshtein_score: {self.nodes_levenshtein_score},
+        xted_score: {self.xted_score}\n"""
 
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,
                           sort_keys=True, indent=4)
 
 
-# region Structure distance
-
-def normalized_zss_action_distance(ldx1: str, ldx2: str) -> (int, Any):
+def normalized_xted(ldx1: str, ldx2: str) -> (int, Any):
     try:
         tree1 = zss_representation(ldx1)
         tree2 = zss_representation(ldx2)
@@ -59,8 +55,8 @@ def mask_ldx_tree(node: ZssNode, mask: dict):
         action = curr.label
 
         if action.action_type == "filter":
-            cv1, cv2, cv3 = extract_cv(action.action_params['field']), extract_cv(
-                action.action_params['condition']), extract_cv(action.action_params['term'])
+            cv1, cv2, cv3 = extract_continuity_variables(action.action_params['field']), extract_continuity_variables(
+                action.action_params['condition']), extract_continuity_variables(action.action_params['term'])
             if cv1:
                 action.action_params['field'] = action.action_params['field'].replace(cv1, mask.get(cv1))
             if cv2:
@@ -68,8 +64,8 @@ def mask_ldx_tree(node: ZssNode, mask: dict):
             if cv3:
                 action.action_params['term'] = action.action_params['term'].replace(cv3, mask.get(cv3))
         if action.action_type == "group":
-            cv1, cv2, cv3 = extract_cv(action.action_params['field']), extract_cv(
-                action.action_params['aggregations'][0]['field']), extract_cv(
+            cv1, cv2, cv3 = extract_continuity_variables(action.action_params['field']), extract_continuity_variables(
+                action.action_params['aggregations'][0]['field']), extract_continuity_variables(
                 action.action_params['aggregations'][0]['type'])
             if cv1:
                 action.action_params['field'] = action.action_params['field'].replace(cv1, mask.get(cv1))
@@ -108,7 +104,7 @@ def get_ldx_tree_mask(tree: ZssNode):
             args_counter, args_naming = g_args_counter, g_args_naming
 
         for i, candidate in enumerate(candidates):
-            cv = extract_cv(candidate)
+            cv = extract_continuity_variables(candidate)
             if not cv: continue
             if cv not in masks:
                 args_counter[i] += 1
@@ -120,29 +116,11 @@ def get_ldx_tree_mask(tree: ZssNode):
     return masks
 
 
-def extract_cv(param):
+def extract_continuity_variables(param):
     cvs = re.findall("\<.+?\>", param)
     if len(cvs) != 1:
         return None
     return cvs[0][1:-1]  # remove parenthesis
-
-
-#  ZSS Score
-def zss_distance(ldx_label, ldx_model_output):
-    try:
-        ldx_model_output = ldx_model_output.lower()
-        ldx_label = ldx_label.lower()
-
-        tree1, size1 = build_tree(ldx_model_output)
-        tree2, size2 = build_tree(ldx_label)
-
-        distance = simple_distance(tree1, tree2)
-        max_size = max(size1, size2)
-        result = 1 - distance / (max_size - 1)  # TODO -1 for the BEGIN node which we don't count ?
-        return result
-    except Exception as e:
-        print(e)
-        return 0
 
 
 def build_tree(query):
@@ -167,8 +145,7 @@ def build_tree_rec(lines, line_number):
     return node
 
 
-#  Basic Levenshtein score
-def structure_distance_metric(ldx_label, ldx_model_output):
+def structure_levenshtein_distance(ldx_label, ldx_model_output):
     ldx_model_output = ldx_model_output.lower()
     ldx_label = ldx_label.lower()
 
@@ -182,26 +159,7 @@ def structure_distance_metric(ldx_label, ldx_model_output):
     return 1 - Levenshtein.distance(converted_pair[0], converted_pair[1]) / max(len(converted_pair[0]),
                                                                                 len(converted_pair[1]))
 
-
-# endregion
-
-# region Nodes Score
-
-# Jaccard similarity
-def nodes_distance_metric(ldx_label, ldx_model_output):
-    ldx_model_output = ldx_model_output.lower()
-    ldx_label = ldx_label.lower()
-
-    pair = (ldx_model_output, ldx_label)
-    nodes_pair = []
-    for ldx in pair:
-        nodes = re.findall("\[.+?\]", ldx)
-        nodes_pair.append(set(nodes))
-    return len(nodes_pair[0].intersection(nodes_pair[1])) / len(nodes_pair[0].union(nodes_pair[1]))
-
-
-# Best cross Levenshtein distance
-def nodes_cross_distance_metric(ldx_label, ldx_model_output):
+def nodes_levenshtein_distance(ldx_label, ldx_model_output):
     ldx_model_output = ldx_model_output.lower()
     ldx_label = ldx_label.lower()
 
@@ -216,9 +174,19 @@ def nodes_cross_distance_metric(ldx_label, ldx_model_output):
 
     return max(0, score / len(ldx_label_nodes))
 
+def nodes_jaccard_distance(ldx_label, ldx_model_output):
+    ldx_model_output = ldx_model_output.lower()
+    ldx_label = ldx_label.lower()
 
-# Simple number of nodes comparison
-def nodes_number_metric(ldx_label, ldx_model_output):
+    pair = (ldx_model_output, ldx_label)
+    nodes_pair = []
+    for ldx in pair:
+        nodes = re.findall("\[.+?\]", ldx)
+        nodes_pair.append(set(nodes))
+    return len(nodes_pair[0].intersection(nodes_pair[1])) / len(nodes_pair[0].union(nodes_pair[1]))
+
+
+def nodes_number_distance(ldx_label, ldx_model_output):
     ldx_model_output = ldx_model_output.lower()
     ldx_label = ldx_label.lower()
 
@@ -226,4 +194,3 @@ def nodes_number_metric(ldx_label, ldx_model_output):
     ldx_label_nodes = list(re.findall("\[.+?\]", ldx_label))
     return 1 - abs(len(ldx_model_output_nodes) - len(ldx_label_nodes)) / max(len(ldx_model_output_nodes),
                                                                              len(ldx_label_nodes))
-# endregion

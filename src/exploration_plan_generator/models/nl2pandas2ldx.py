@@ -1,28 +1,28 @@
 from exploration_plan_generator.clients.abstact_llm_client import AbstractLLMClient
-from exploration_plan_generator.models.abstract_translation_model import AbstractTranslationModel
-from exploration_plan_generator.prompts.in_domain.from_boston.from_boston_nl2pandas import \
-    from_boston_nl2pandas_examples
-from exploration_plan_generator.prompts.in_domain.from_boston.from_boston_pandas2ldx import \
-    from_boston_pandas2ldx_examples
-from exploration_plan_generator.prompts.in_domain.netflix.netflix_nl2pandas import netflix_nl2pandas_examples
-from exploration_plan_generator.prompts.in_domain.netflix.netflix_pandas2ldx import netflix_pandas2ldx_examples
-from exploration_plan_generator.prompts.in_domain.play_store.play_store_nl2pandas import play_store_nl2pandas_examples
-from exploration_plan_generator.prompts.in_domain.play_store.play_store_pandas2ldx import play_store_pandas2ldx_examples
+from exploration_plan_generator.models.abstract_model import AbstractModel, SYSTEM_MESSAGE
+from exploration_plan_generator.prompts.in_domain.flights.flights_nl2pandas_examples import \
+    flights_nl2pandas_examples
+from exploration_plan_generator.prompts.in_domain.flights.fligths_pandas2ldx_examples import \
+    flights_pandas2ldx_examples
+from exploration_plan_generator.prompts.in_domain.netflix.netflix_nl2pandas_examples import netflix_nl2pandas_examples
+from exploration_plan_generator.prompts.in_domain.netflix.netflix_pandas2ldx_examples import netflix_pandas2ldx_examples
+from exploration_plan_generator.prompts.in_domain.play_store.play_store_nl2pandas_examples import play_store_nl2pandas_examples
+from exploration_plan_generator.prompts.in_domain.play_store.play_store_pandas2ldx_examples import play_store_pandas2ldx_examples
 from exploration_plan_generator.prompts.out_domain.out_domain_nl2pandas import out_domain_nl2pandas_examples
 from exploration_plan_generator.prompts.out_domain.out_domain_pandas2ldx import out_domain_pandas2ldx_examples
 
 
-class NL2Pd2LDX(AbstractTranslationModel):
+class NL2Pd2LDX(AbstractModel):
 
     def __init__(self, llm_client: AbstractLLMClient):
         super().__int__(llm_client)
-        self.first_prompt = first_prompt_nl2pandas
+        self.first_prompt = nl2pandas_prompt_prefix
 
-    def nl2ldx(self, dataset, scheme, sample, task, exclude_examples_ids, is_multi_domain):
+    def nl2ldx(self, dataset, scheme, sample, task, exclude_examples_ids, is_out_domain):
         dataset_name = dataset.split('.')[0]
-        if not is_multi_domain:
-            if dataset_name == "from_boston":
-                examples = from_boston_nl2pandas_examples
+        if not is_out_domain:
+            if dataset_name == "flights":
+                examples = flights_nl2pandas_examples
             elif dataset_name == "netflix":
                 examples = netflix_nl2pandas_examples
             elif dataset_name == "play_store":
@@ -34,15 +34,15 @@ class NL2Pd2LDX(AbstractTranslationModel):
         else:
             examples = [v for k, v in out_domain_nl2pandas_examples.items() if k not in exclude_examples_ids]
             prompt = self.construct_request_multi_domains(dataset, scheme, examples, sample, task)
-        pandas = self.llm_client.send_request(self.first_prompt + "\n" + prompt)
-        ldx = self.pandas2LDX(dataset_name, pandas, exclude_examples_ids, is_multi_domain) # TODO add here NL as param
+        pandas = self.llm_client.send_request(system_message=SYSTEM_MESSAGE,prompt=self.first_prompt + "\n" + prompt)
+        ldx = self.pandas2LDX(dataset_name, pandas, exclude_examples_ids, is_out_domain)
         fixed_ldx = self.ldx_post_proccessing(ldx)
         return fixed_ldx
 
     def pandas2LDX(self, dataset_name, pandas, exclude_examples_ids, is_multi_domain):
         if not is_multi_domain:
-            if dataset_name == "from_boston":
-                examples = from_boston_pandas2ldx_examples
+            if dataset_name == "flights":
+                examples = flights_pandas2ldx_examples
             elif dataset_name == "netflix":
                 examples = netflix_pandas2ldx_examples
             elif dataset_name == "play_store":
@@ -57,13 +57,14 @@ class NL2Pd2LDX(AbstractTranslationModel):
         if exp_index != -1:
             pandas = pandas[:exp_index]
         pandas = pandas.strip('\n')
-        query = first_prompt_pandas2ldx + ''.join(examples) + "\nNow convert the following while making sure '[' is closed by ']' and not by other parenthesis.\nPandas:\n" +pandas + "\nLDX:\n"
-        ldx = self.llm_client.send_request(query)
+
+        query = pandas2ldx_prompt_prefix + ''.join(examples) + "\nNow convert the following while making sure '[' is closed by ']' and not by other parenthesis.\nPandas:\n" + pandas + "\nLDX:\n"
+        ldx = self.llm_client.send_request(system_message="You are an AI assistant for converting tasks in pandas code to LDX",prompt=query)
         ldx = ldx.replace(')}', ')]')
         return ldx
 
 
-first_prompt_nl2pandas = """LDX is an extension to python pandas. Instead of explicitly passing the parameters 
+nl2pandas_prompt_prefix = """LDX is an extension to python pandas. Instead of explicitly passing the parameters 
 to the pandas built-in methods (e.g groupby), it allows you use continuity variables (placeholders), which are determined during runtime.
 The extension is especially useful for specifying the order of notebook's query operations and their type and parameters.
 The continuity variables stores its value in order to reuse the same value in several places.
@@ -102,7 +103,7 @@ LDX:
 """
 
 
-first_prompt_pandas2ldx = """LDX (Language for Data Exploration) is a specification language that extends Tregex, 
+pandas2ldx_prompt_prefix = """LDX (Language for Data Exploration) is a specification language that extends Tregex, 
 a query language for tree-structured data. It allows you to partially specify structural properties of a tree, 
 as well as the nodes' labels, using continuity variables (placeholders) which are determined during runtime.
 The language is especially useful for specifying the order of notebook's query operations and their type and parameters.

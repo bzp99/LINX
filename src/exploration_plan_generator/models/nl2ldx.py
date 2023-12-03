@@ -1,22 +1,24 @@
 from exploration_plan_generator.clients.abstact_llm_client import AbstractLLMClient
-from exploration_plan_generator.models.abstract_translation_model import AbstractTranslationModel
-from exploration_plan_generator.prompts.in_domain.from_boston.from_boston_nl2ldx import from_boston_nl2ldx_examples
-from exploration_plan_generator.prompts.in_domain.netflix.netflix_nl2ldx import netflix_nl2ldx_examples
-from exploration_plan_generator.prompts.in_domain.play_store.play_store_nl2ldx import play_store_nl2ldx_examples
+from exploration_plan_generator.models.abstract_model import AbstractModel, SYSTEM_MESSAGE
+from exploration_plan_generator.prompts.in_domain.flights.flights_nl2ldx_examples import \
+    flights_nl2ldx_examples
+from exploration_plan_generator.prompts.in_domain.netflix.netflix_nl2ldx_examples import netflix_nl2ldx_examples
+from exploration_plan_generator.prompts.in_domain.play_store.play_store_nl2ldx_examples import \
+    play_store_nl2ldx_examples
 from exploration_plan_generator.prompts.out_domain.out_domain_nl2ldx import out_domain_nl2ldx_examples
 
 
-class NL2LDX(AbstractTranslationModel):
+class NL2LDX(AbstractModel):
 
     def __init__(self, llm_client: AbstractLLMClient):
         super().__int__(llm_client)
-        self.first_prompt = first_prompt_ldx
+        self.first_prompt = prompt_prefix
 
-    def nl2ldx(self, dataset, scheme, sample, task, exclude_examples_ids, is_multi_domain):
+    def nl2ldx(self, dataset, scheme, sample, task, exclude_examples_ids, is_out_domain):
         dataset_name = dataset.split('.')[0]
-        if not is_multi_domain:
-            if dataset_name == "from_boston":
-                examples = from_boston_nl2ldx_examples
+        if not is_out_domain:
+            if dataset_name == "flights":
+                examples = flights_nl2ldx_examples
             elif dataset_name == "netflix":
                 examples = netflix_nl2ldx_examples
             elif dataset_name == "play_store":
@@ -28,12 +30,12 @@ class NL2LDX(AbstractTranslationModel):
         else:
             examples = [v for k, v in out_domain_nl2ldx_examples.items() if k not in exclude_examples_ids]
             prompt = self.construct_request_multi_domains(dataset, scheme, examples, sample, task)
-        ldx = self.llm_client.send_request(self.first_prompt + "\n" + prompt)
+        ldx = self.llm_client.send_request(system_message=SYSTEM_MESSAGE ,prompt=self.first_prompt + "\n" + prompt)
         fixed_ldx = self.ldx_post_proccessing(ldx)
         return fixed_ldx
 
 
-first_prompt_ldx = """LDX (Language for Data Exploration) is a specification language that extends Tregex, 
+prompt_prefix = """LDX (Language for Data Exploration) is a specification language that extends Tregex, 
 a query language for tree-structured data. It allows you to partially specify structural properties of a tree, 
 as well as the nodes' labels. The language is especially useful for specifying the order of notebook's query 
 operations and their type and parameters.

@@ -13,8 +13,8 @@ class ZssNode(object):
     def get_children(node):
         return node.my_children
 
-    def get_label(node):
-        return node.label
+    def get_label(self):
+        return self.label
 
     def add_kid(self, node, before=False):
         if before:
@@ -301,6 +301,3 @@ def action_similarity(action1: Action, action2: Action, verbose=False):
     if action1.children_type != action2.children_type:
         score /= 2
     return score
-
-
-__all__ = ['action_similarity']
