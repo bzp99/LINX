@@ -3,19 +3,18 @@ This repository contains the source code and experiments used to evaluate LINX, 
 The repository is free for use for academic purposes. Please contact the repository owners before usage.
 
 ## The problem: Auto-generating meaningful and relevant Exploratory Notebooks using a friendly interface
-One of the most effective methods for facilitating the process of exploring a dataset is to examine existing data exploration notebooks prepared by other data analysts or scientists. These notebooks contain curated sessions of contextually-related query operations that all together demonstrate interesting hypotheses and conjectures on the data. Unfortunately, relevant such notebooks, that had been prepared on the same dataset, and in light of the
-same analysis task – are often nonexistent or unavailable. LINX is a CDRL framework guided by LLM component for autogenerating interesting, task-relevant notebooks given a user-provided dataset and task in natural language.  
+One of the most effective methods for facilitating the process of exploring a dataset is to examine existing data exploration notebooks prepared by other data analysts or scientists. These notebooks contain curated sessions of contextually-related query operations that all together demonstrate interesting hypotheses and conjectures on the data. Unfortunately, relevant such notebooks, that had been prepared on the same dataset, and in light of thesame analysis task – are often nonexistent or unavailable. LINX is a CDRL framework guided by an LLM component for autogenerating interesting, task-relevant notebooks given a user-provided dataset and task in natural language.  
 
 ## [Source Code](src)
 The source code is located [here](src) (LINX/src) <br/>
 Under this directory, there are two folders:
-1. CDRL Engine: contains all the source code of the CDRL engine that generating the personalized exploration notebooks.
-2. Exploration Plan Generator: contains all the source code of the LLM component which translates the user task in natural language to LDX specifications fed to the engine.
+1. Exploration Plan Generator: contains all the source code of the LLM component which translates the user task in natural language to LDX specifications fed to the engine.
+2. CDRL Engine: contains all the source code of the CDRL engine that generating the personalized exploration notebooks.
 For installation guide, running instructions and further details please refer to the 
 documentation under the source code directory in the link above.
 
 ## [Documentation](documentation)
-1. [LINX Full Paper](documentation/LINX_Full_Paper.pdf) - see the full paper [here](documentation/LINX_Full_Paper.pdf).
+1. [LINX Technical Report](documentation/LINX_Full_Paper.pdf) -  [here](documentation/LINX_Full_Paper.pdf).
 2. [LDX Technical User Guide](documentation/LDX_User_Guide.pdf)
 A simple user guide for writing LDX specifications is located [here](documentation/LDX_User_Guide.pdf). <br/>
 
