@@ -14,7 +14,9 @@ Under this directory, there are two folders:
 For installation guide, running instructions and further details please refer to the 
 documentation under the source code directory in the link above.
 
-## [LDX Technical User Guide](documentation/LDX_User_Guide.pdf)
+## [Documentation](documentation)
+1. [LINX Full Paper](documentation/LINX_Full_Paper.pdf) - see the full paper [here](documentation/LINX_Full_Paper.pdf).
+2. [LDX Technical User Guide](documentation/LDX_User_Guide.pdf)
 A simple user guide for writing LDX specifications is located [here](documentation/LDX_User_Guide.pdf). <br/>
 
 ## [Experiment Datasets](datasets)
