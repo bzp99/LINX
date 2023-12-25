@@ -14,7 +14,7 @@ For installation guide, running instructions and further details please refer to
 documentation under the source code directory in the link above.
 
 ## [Documentation](documentation)
-1. [LINX Technical Report](documentation/LINX_Full_Paper.pdf) -  [here](documentation/LINX_Full_Paper.pdf).
+1. [LINX Paper](documentation/LINX_Full_Paper.pdf) -  [here](documentation/LINX_Full_Paper.pdf).
 2. [LDX Technical User Guide](documentation/LDX_User_Guide.pdf)
 A simple user guide for writing LDX specifications is located [here](documentation/LDX_User_Guide.pdf). <br/>
 
