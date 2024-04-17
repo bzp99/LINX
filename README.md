@@ -23,9 +23,9 @@ For installation guide, running instructions and further details please refer to
 documentation under the source code directory in the link above.
 
 ## [Documentation](documentation)
-1. [LINX Technical Report ](documentation/LINX_Full_Paper.pdf) -- Including a comprehensive Appendix with complete details is a vailable  [here](documentation/LINX_Full_Paper.pdf).
+1. [LINX Technical Report ](documentation/LINX_Full_Paper.pdf) - Including a comprehensive appendix with complete details is a vailable  [here](documentation/LINX_Full_Paper.pdf).
 2. [LDX Language Guide](documentation/LDX_User_Guide.pdf)
- -- Full Details and Examples for our specification language for data exploration are available [here](documentation/LDX_User_Guide.pdf). <br/>
+    Full Details and Examples for our specification language for data exploration are available [here](documentation/LDX_User_Guide.pdf). <br/>
 
 ## [Experiment Datasets](datasets)
 The datasets used in our empirical evaluation are located [here](datasets). <br/>
