@@ -1,6 +1,6 @@
 from typing import Any
 
-from exploration_plan_generator.clients.abstact_llm_client import AbstractLLMClient
+from llm_exploration_specifications.clients.abstact_llm_client import AbstractLLMClient
 
 
 class TestClient(AbstractLLMClient):
