@@ -1,7 +1,7 @@
 import pandas as pd
 
-from exploration_plan_generator.clients.openai_client import *
-from exploration_plan_generator.models.nl2pandas2ldx import NL2Pd2LDX
+from llm_exploration_specifications.clients.openai_client import *
+from llm_exploration_specifications.models.nl2pandas2ldx import NL2Pd2LDX
 
 df = pd.read_csv('..\..\datasets\play_store.tsv', sep='\t', header=0)
 

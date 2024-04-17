@@ -3,7 +3,7 @@ from abc import ABC
 from collections import Counter
 
 
-from exploration_plan_generator.clients.abstact_llm_client import AbstractLLMClient
+from llm_exploration_specifications.clients.abstact_llm_client import AbstractLLMClient
 from nl2ldx_benchmark.evaulation.benchmark_model_api import BenchmarkModelAPI
 
 SYSTEM_MESSAGE = "You are an AI assistant for converting tasks in natural language to LDX"
