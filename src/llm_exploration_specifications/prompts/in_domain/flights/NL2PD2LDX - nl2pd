@@ -160,5 +160,4 @@ Then apply some groupby to view it as interesting groups, and apply another diff
 
 now convert the following task to LDX according to the given scheme, and add explanation.
 
-task: Find a destination airport that has a distinct property compared to the other destination airports.
-LDX:
+task:
