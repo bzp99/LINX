@@ -147,5 +147,4 @@ use this sample of first 5 tuples from the dataset as a reference:
 4                    Pixel Draw - Number Art Coloring Book ART_AND_DESIGN 4.3       967     2800         1000000  Free 0.0    Everyone       2018          4
 5                               Paper flowers instructions ART_AND_DESIGN 4.4       167     5600           10000  Free 0.0    Everyone       2017          2
 
-task: Display the highest price among two distinct subsets of applications.
-LDX:
+task:

@@ -1,0 +1,139 @@
+LDX (Language for Data Exploration) is a specification language that extends Tregex,
+a query language for tree-structured data. It allows you to partially specify structural properties of a tree,
+as well as the nodes' labels. The language is especially useful for specifying the order of notebook's query
+operations and their type and parameters.
+LDX specifies the structure of the queries by using CHILDREN and DESCENDANTS keywords which define the order of the operations.
+The operations are defined by LIKE keyword which specifies the type of the operation and its parameters. The operations that LDX currently supports are filter, groupby, and agg.
+
+here are some basic examples how to convert tasks to LDX:
+
+task: apply twice the same aggregation and same groupby
+LDX:
+      BEGIN CHILDREN {A1,A2}
+      A1 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+      A2 LIKE [G,<COL>,<AGG_FUNC>,<AGG_COL>]
+
+task: apply two different aggregations, both grouped by the same column
+LDX:
+      BEGIN CHILDREN {A1,A2}
+      A1 LIKE [G,<COL>,<AGG_FUNC1>,<AGG_COL1>]
+      A2 LIKE [G,<COL>,<AGG_FUNC2>,<AGG_COL2>]
+
+task: group by separately by two different columns, both aggregated with the same aggregation
+LDX:
+      BEGIN CHILDREN {A1,A2}
+      A1 LIKE [G,<COL1>,<AGG_FUNC>,<AGG_COL>]
+      A2 LIKE [G,<COL2>,<AGG_FUNC>,<AGG_COL>]
+
+task: apply two completely different aggregations
+LDX:
+      BEGIN CHILDREN {A1,A2}
+      A1 LIKE [G,<COL1>,<AGG_FUNC1>,<AGG_COL1>]
+      A2 LIKE [G,<COL2>,<AGG_FUNC2>,<AGG_COL2>]
+
+task: filter attribute ATT to some value
+LDX:
+      BEGIN CHILDREN {A1}
+      A1 LIKE [F,ATT,eq,<VALUE>]
+
+task: make sure at some point to filter attribute ATT to some value, there might be other operations before that.
+LDX:
+      BEGIN DESCENDANTS {A1}
+      A1 LIKE [F,ATT,eq,<VALUE>]
+
+Correct the given LDX in case it has syntax errors, else return "No Errors".
+
+Input:
+    BEGIN CHILDREN {A1}
+    A1 LIKE [F,ATT,eq,VALUE] and CHILDREN {B1,B2}
+        B1 LIKE [G,.*]
+        B2 LIKE [G,.*]
+Output:
+    No Errors
+
+Input:
+    BEGIN CHILDREN {A1}
+    A1 LIKE [F,ATT,eq,VALUE] and CHILDREN {B1}
+        B1 like [g,.*]
+        B1 like [g,.*]
+        B1 like [g,.*]
+Output:
+    BEGIN CHILDREN {A1}
+    A1 LIKE [F,ATT,eq,VALUE] and CHILDREN {B1,B2,B3}
+        B1 LIKE [G,.*]
+        B2 LIKE [G,.*]
+        B3 LIKE [G,.*]
+
+Input:
+    BEGIN CHILDREN {A1,A2}
+    A1 LIKE [F,ATT,gt,VALUE] and CHILDREN {B1,B2}
+        B1 LIKE [G,(?<col1>.*),(?<agg_func1>.*),(?<agg_col1>.*)]
+        B2 LIKE [G,(?<col2>.*),(?<agg_func2>.*),(?<agg_col2>.*)]
+    A2 LIKE [G,(?<col1>.*),(?<agg_func1>.*),(?<agg_col1>.*)]
+    A2 LIKE [G,(?<col2>.*),(?<agg_func2>.*),(?<agg_col2>.*)]
+Output:
+    BEGIN CHILDREN {A1,A2,A3}
+    A1 LIKE [F,ATT,gt,VALUE] and CHILDREN {B1,B2}
+        B1 LIKE [G,(?<col1>.*),(?<agg_func1>.*),(?<agg_col1>.*)]
+        B2 LIKE [G,(?<col2>.*),(?<agg_func2>.*),(?<agg_col2>.*)]
+    A2 LIKE [G,(?<col1>.*),(?<agg_func1>.*),(?<agg_col1>.*)]
+    A3 LIKE [G,(?<col2>.*),(?<agg_func2>.*),(?<agg_col2>.*)]
+
+Input:
+    BEGIN CHILDREN {A1}
+    A1 LIKE [F,ATT,eq,VALUE] and CHILDREN {B1}
+        B1 LIKE [G,(?<col1>.*),.*]
+Output:
+    No Errors
+
+Input:
+    BEGIN CHILDREN {A1,A2,A3}
+    A1 LIKE [F,ATT,gt,VALUE] and CHILDREN {B1}
+        B1 LIKE [G,.*]
+    A2 LIKE [G,.*]
+    A3 LIKE [G,.*]
+Output:
+    No Errors
+
+Input:
+    BEGIN CHILDREN {A1}
+    A1 LIKE [F,ATT,eq,VALUE] and CHILDREN {B1}
+        B1 LIKE [G,(?<col1>.*),.*]
+        B1 LIKE [G,(?<col2>.*),.*]
+Output:
+    BEGIN CHILDREN {A1}
+    A1 LIKE [F,ATT,eq,VALUE] and CHILDREN {B1,B2}
+        B1 LIKE [G,(?<col1>.*),.*]
+        B2 LIKE [G,(?<col2>.*),.*]
+
+Input:
+    BEGIN CHILDREN {A1}
+    A1 LIKE [G,.*] and CHILDREN {B1}
+        B1 LIKE [F,ATT1,eq,VALUE1] and CHILDREN {C1,C2}
+            C1 LIKE [G,.*]
+            C2 LIKE [G,.*}
+        B2 LIKE [F,ATT2,eq,VALUE1] and CHILDREN {C3}
+            C3 LIKE [G,.*]
+Output:
+    BEGIN CHILDREN {A1}
+    A1 LIKE [G,.*] and CHILDREN {B1,B2}
+        B1 LIKE [F,ATT1,eq,VALUE1] and CHILDREN {C1,C2}
+            C1 LIKE [G,.*]
+            C2 LIKE [G,.*}
+        B2 LIKE [F,ATT2,eq,VALUE1] and CHILDREN {C3}
+            C3 LIKE [G,.*]
+
+Input:
+    BEGIN CHILDREN {A1}
+    A1 LIKE [G,.*] and CHILDREN {B1,B2}
+        B1 LIKE [F,ATT1,eq,VALUE1] and CHILDREN {C1}
+            C1 LIKE [G,.*]
+        B2 LIKE [F,ATT2,eq,VALUE1] and CHILDREN {C2}
+            C2 LIKE [G,.*]
+Output:
+    No Errors
+
+now correct the following and stop the answer after providing the corrected LDX:
+
+Input:
+
