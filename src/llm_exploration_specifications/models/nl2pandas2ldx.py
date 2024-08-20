@@ -94,12 +94,12 @@ LDX:
 
 task: filter attribute ATT to some value
 LDX:
-      some_origin_airport = df[df['ATT'] == <VALUE>]
+      some_attribute = df[df['ATT'] == <VALUE>]
 
 task: make sure at some point to filter attribute ATT to some value, there might be other operations before that.
 LDX:
       do_some_operations() # call do_some_operations() to simulate 'at some point'
-      some_origin_airport = df[df['ATT'] == <VALUE>]
+      some_attribute = df[df['ATT'] == <VALUE>]
 """
 
 
@@ -119,17 +119,17 @@ LDX:
         A1 LIKE [G,.*,mean,<COL>] 
 
 
-do_some_operations() is omitted and translated to DESCENDANTS (rather than CHILDRE)
+do_some_operations() is omitted and translated to DESCENDANTS (rather than CHILDREN):
 
 Pandas:       
        df = pd.read_csv("dataset.tsv", delimiter="\\t")
        
        do_some_operations()
 
-       some_filter = df[df['col'] == 'value']
+       some_filter = df[df['column'] == 'value']
 LDX:
         BEGIN DESCENDANTS {A1}
-        A1 LIKE [F,'col',eq,'value']
+        A1 LIKE [F,'column',eq,'value']
 
 Pandas:       
        df = pd.read_csv("dataset.tsv", delimiter="\\t")
@@ -158,21 +158,21 @@ Pandas:
        df = pd.read_csv("dataset.tsv", delimiter="\\t")
 
        df = df[df['column'].isin('value1','value2')]
-       df = df.groupby('column1').agg({'column2': 'function'})
+       df = df.groupby('column1').agg({'column2': mean})
 LDX:
        BEGIN CHILDREN {A1,A2}
        A1 LIKE [F,'column',eq,'value1'] and CHILDREN {B1}
-        B1 LIKE [G,'column1','function,'column2']
+        B1 LIKE [G,'column1',mean,'column2']
        A2 LIKE [F,'column',eq,'value2'] and CHILDREN {B2}
-        B2 LIKE [G,'column1','function,'column2']
+        B2 LIKE [G,'column1',mean,'column2']
         
 Pandas:       
        df = pd.read_csv("dataset.tsv", delimiter="\\t")
 
-       subgroups = df.groupby(['column1','column2']).agg({'column3': 'function'})
+       subgroups = df.groupby(['column1','column2']).agg({'column3': mean})
 LDX:
        BEGIN CHILDREN {A1,A2}
-       A1 LIKE [G,'column1','function,'column3']and CHILDREN {B1}
-        B1 LIKE [G,'column2','function,'column3']
+       A1 LIKE [G,'column1',mean,'column3'] and CHILDREN {B1}
+        B1 LIKE [G,'column2',mean,'column3']
 """
 

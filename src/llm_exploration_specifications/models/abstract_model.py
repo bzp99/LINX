@@ -35,10 +35,14 @@ class AbstractModel(BenchmarkModelAPI, ABC):
         if exp_index != -1:
             ldx_generated = ldx_generated[:exp_index]
 
+        ldx_generated = ldx_generated.replace(")}", ")]")
+        ldx_generated = ldx_generated.replace('`', '')
+
         if ldx_generated.startswith("LDX:"):
             ldx_generated = ldx_generated[4:]
+        if ldx_generated.startswith("ldx"):
+            ldx_generated = ldx_generated[3:]
 
-        ldx_generated = ldx_generated.replace(")}", ")]")
         return ldx_generated
 
     def construct_request(self, dataset_name, scheme, examples, sample, task):
@@ -52,5 +56,5 @@ class AbstractModel(BenchmarkModelAPI, ABC):
         task_section = f"\nnow convert the following task to LDX according to the dataset: {dataset_name} and scheme: {scheme}, and add explanation."
         sample_section = f"\nuse this sample of first 5 tuples from the dataset as a reference:\n{sample}"
 
-        request = prefix + ''.join(examples) + task_section + sample_section + "\n\ntask: " + task + "\nLDX:"
+        request = prefix + ''.join(examples) + task_section + sample_section + "\n\ntask: " + task + "\nLDX:\n"
         return request
