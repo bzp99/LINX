@@ -157,8 +157,3 @@ LDX:
 
 Now convert the following while making sure '[' is closed by ']' and not by other parenthesis.
 Pandas:
-df = pd.read_csv("from_boston.tsv", delimiter="	")
-
-distinct_destination_airport = df.groupby('destination_airport').agg(<AGG>)
-other_destination_airport = df.groupby('destination_airport').agg(<AGG>)
-LDX:

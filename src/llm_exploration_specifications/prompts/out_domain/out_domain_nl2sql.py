@@ -1,17 +1,19 @@
-out_domain_nl2pandas_examples = {
+out_domain_nl2sql_examples = {
     1:
-    """
+        """
 task: find one game platform which has one different property compared to all the other platforms
 dataset: epic_games
 scheme: id, name, game_slug, price, release_date, platform, description, developer, publisher, genres
 LDX:
-    df = pd.read_csv("epic_games.tsv", delimiter="\t")
-
-    some_platform = df[df['platform'] == <VALUE>]
-    other_platform = df[df['platform'] != <VALUE>]
-
-    some_platform_agg = some_platform.groupby(<COL>).agg(<AGG>)
-    other_platform_agg = other_platform.groupby(<COL>).agg(<AGG>)
+    SELECT <COL>,<AGG>
+    FROM epic_games
+    WHERE platform = <VALUE>
+    GROUP BY <COL>;
+    
+    SELECT <COL>,<AGG>
+    FROM epic_games
+    WHERE platform != <VALUE>
+    GROUP BY <COL>;
 explanation: Split the games to two sets - one with a platform and one with the other platforms.
 Then apply the same aggregation on both of them in order to compare them.
 """,
@@ -20,13 +22,31 @@ Then apply the same aggregation on both of them in order to compare them.
 task: investigate what makes data scientists to earn above the 90th percentile salary (above $219,000, according to this dataset) and drill down to a specific reason
 dataset: ds_salaries
 scheme:	work_year, experience_level, employment_type, job_title, salary, salary_currency, salary_in_usd, employee_residence, remote_ratio, company_location
-LDX:
-    df = pd.read_csv("ds_salaries.tsv", delimiter="\t")
-    greater_than_219000 = df[df['salary_in_usd'] > 219000]
-    salaries_properties1 = greater_than_219000.groupby(<COL1>).agg(<AGG1>)
-    focus_of_col1 = greater_than_219000[greater_than_219000[<COL1>] == <VALUE1>]
-    salaries_properties2 = focus_of_col1.groupby(<COL2>).agg(<AGG2>)
-    focus_of_col2 = focus_of_col1[focus_of_col1[<COL2>] == <VALUE2>]
+LDX:        
+    high_salaries AS (
+        SELECT *
+        FROM ds_salaries
+        WHERE salary_in_usd > 219000
+    ),
+    
+    SELECT <COL1>, <AGG1>
+    FROM high_salaries
+    GROUP BY <COL1>
+    
+    focus_of_col1 AS (
+        SELECT *
+        FROM high_salaries
+        WHERE <COL1> = <VALUE1>
+    ),
+    
+    SELECT <COL2>, <AGG_FUNC2> 
+    FROM focus_of_col1
+    GROUP BY <COL2>
+    
+    SELECT *
+    FROM focus_of_col1
+    WHERE <COL2> = <VALUE2>
+
 explanation: filter to salaries in usd greater than 219000.
 Then, group according to some column and apply some aggregation in order to find some column that significantly influences the distribution of them.
 After that filter on one of the values of the selected column from the previous step. Repeat it once again to drill down more.
@@ -36,16 +56,21 @@ After that filter on one of the values of the selected column from the previous 
 task: compare some three different subsets of processors according to some properties
 dataset: intel_processors
 scheme:	Product, Status, Release Date, Cores, Threads, Lithography, Max. Turbo Freq, Base Freq, TDP, Cache
-LDX:
-    df = pd.read_csv("intel_processors.tsv", delimiter="\t")
-
-    first_product = df[df['Product'] == <VALUE1>]
-    second_product = df[df['Product'] == <VALUE2>]
-    third_product = df[df['Product'] == <VALUE3>]
-
-    first_product_agg = first_product.groupby(<COL>).agg(<AGG>)
-    second_product_agg = second_product.groupby(<COL>).agg(<AGG>)
-    third_product_agg = third_product.groupby(<COL>).agg(<AGG>)
+LDX:          
+    SELECT <COL>,<AGG>
+    FROM intel_processors
+    WHERE Product = <VALUE1>
+    GROUP BY <COL>;
+    
+    SELECT <COL>,<AGG>
+    FROM intel_processors
+    WHERE Product = <VALUE2>
+    GROUP BY <COL>;
+    
+    SELECT <COL>,<AGG>
+    FROM intel_processors
+    WHERE Product = <VALUE3>
+    GROUP BY <COL>;        
 explanation: Split the processors to three sets, each one filtered to a different product.
 Then apply the same aggregation on each of them in order to compare them.
 """,
@@ -55,13 +80,15 @@ task: show the average cost of some two different subsets of houses
 dataset: houses
 scheme: Area, BHK, Bathroom, Furnishing, Locality, Parking, Price, Status, Transaction, Type, Per_Sqft
 LDX:
-    df = pd.read_csv("houses.tsv", delimiter="\t")
-
-    first_subset = df[df[<COL1>] == <VALUE1>]
-    first_subset_agg = first_subset.groupby(<AGG_COL1>).agg({'Price': 'mean'})
-
-    second_subset = df[df[<COL2] == <VALUE2>]
-    second_subset_agg = second_subset.groupby(<AGG_COL2>).agg({'Price': 'mean'})
+    SELECT <AGG_COL1>,AVG(Price)
+    FROM houses
+    WHERE <COL1> = <VALUE1>
+    GROUP BY <AGG_COL1>;
+    
+    SELECT <AGG_COL2>,AVG(Price)
+    FROM houses
+    WHERE <COL2> = <VALUE2>
+    GROUP BY <AGG_COL2>;
 explanation: filter the houses to some column and some of its values. Then, group the houses according to some column and calculate the average price. Do so one more time but on different subset of the houses.
 """,
     5:
@@ -70,14 +97,25 @@ task: show two properties of emojis published in 2022 compared to all the emojis
 dataset: emojis
 scheme: Hex, Rank, Emoji, Year, Category, Subcategory, Name
 LDX:
-    df = pd.read_csv("emojis.tsv", delimiter="\t")
-
-    emojis_properties_1 = df.groupby(<COL1>).agg(<AGG1>)
-    emojis_properties_2 = df.groupby(<COL2>).agg(<AGG2>)
-
-    2022_emojis = df[df['Year'] != '2022']
-    2022_emojis_properties1 = 2022_emojis.groupby(<COL1>).agg(<AGG1>)
-    2022_emojis_properties2 = 2022_emojis.groupby(<COL2>).agg(<AGG2>)
+    SELECT <AGG_COL1>,<AGG1>
+    FROM emojis
+    GROUP BY <AGG_COL1>;
+    
+    SELECT <AGG_COL2>,<AGG2>
+    FROM emojis
+    GROUP BY <AGG_COL2>;
+    
+    2022_emojis as (SELECT *
+    FROM emojis
+    WHERE Year == 2022);
+    
+    SELECT <AGG_COL1>,<AGG1>
+    FROM 2022_emojis
+    GROUP BY <AGG_COL1>;
+    
+    SELECT <AGG_COL2>,<AGG2>
+    FROM 2022_emojis
+    GROUP BY <AGG_COL2>;
 explanation: Apply two aggregations. Also filter the emojis to those published in the year 2022 and apply the same two aggregations in order to compare it to the previous step.
 """,
     6:
@@ -86,16 +124,21 @@ task: explore three different car models in different ways
 dataset: cars
 scheme: addref, city, assembly, body, make, model, year, engine, transmission, fuel
 LDX:
-       df = pd.read_csv("cars.tsv", delimiter="\t")
-
-       model1 = df[df['model'] == <VALUE1>]
-       model2 = df[df['model'] == <VALUE2>]
-       model3 = df[df['model'] == <VALUE3>]
-
-       model1_properties = model1.groupby(<COL1>).agg(<AGG1>)
-       model2_properties = model2.groupby(<COL2>).agg(<AGG2>)
-       model3_properties = model3.groupby(<COL3>).agg(<AGG3>)
-explanation: filter to three different flight ids and for each one show some properties.
+    SELECT <COL1>,<AGG1>
+    FROM cars
+    WHERE model = <VALUE1>
+    GROUP BY <COL1>;
+    
+    SELECT <COL2>,<AGG2>
+    FROM cars
+    WHERE model = <VALUE2>
+    GROUP BY <COL2>;
+    
+    SELECT <COL3>,<AGG3>
+    FROM cars
+    WHERE model = <VALUE3>
+    GROUP BY <COL3>;
+explanation: filter to three different models and for each one show some properties.
 """,
     8:
     """
@@ -103,28 +146,31 @@ task: explore the data, make sure to address two interesting properties of the r
 dataset: spotify
 scheme: Artist, Streams, Daily, As lead, Solo, As feature
 LDX:
-       df = pd.read_csv("spotify.tsv", delimiter="\t")
+    -- do some queries before
 
-       do_some_operations()
-
-       drake_songs = df[df['Artist'] == 'Drake']
-
-       drake_songs_properties_1 = drake_songs.groupby(<COL1>).agg(<AGG1>)
-       drake_songs_properties_2 = drake_songs.groupby(<COL2>).agg(<AGG2>)
-explanation: At some point, filter artist to Drake at some point. Then, show two different properties using two different group by operations.
+    drake_songs as (SELECT *
+    FROM spotify
+    WHERE Artist = Drake);
+    
+    SELECT <AGG_COL1>,<AGG1>
+    FROM drake_songs
+    GROUP BY <AGG_COL1>;
+    
+    SELECT <AGG_COL2>,<AGG2>
+    FROM drake_songs
+    GROUP BY <AGG_COL2>;
+explanation: Use descendant in order to filter artist to Drake at some point. Then, show two different properties using two different group by operations.
 """,
     9:
     """
 task: show interesting sub-groups of 5-stars repositories
 dataset: github
 scheme: Name, Description, URL, Created At, Updated At, Homepage, Size, Stars, Forks, Issues
-LDX:
-        df = pd.read_csv("github.tsv", delimiter="\t")
-
-        5_stars_repos = df[df['Stars'] == '5']
-
-        5_stars_repos_grouped = 5_stars_repos.groupby(<COL1>).agg(<AGG1>)
-        5_stars_repos_sub_grouped = 5_stars_repos_grouped.groupby(<COL2>).agg(<AGG2>)
+LDX:   
+    SELECT <COL1>,<COL2>,<AGG1>,<AGG2>
+    FROM github
+    WHERE Stars = 5
+    GROUP BY <COL1>,<COL2>;
 explanation: Filter to repositories with 5 stars.
 Then apply some groupby to view it as interesting groups, and apply another groupby to view interesting sub-groups.
 """

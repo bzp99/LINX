@@ -164,5 +164,4 @@ Then apply some groupby to view it as interesting groups, and apply another grou
 
 now convert the following task to LDX according to the given scheme, and add explanation.
 
-task: Display the highest price among two distinct subsets of applications.
-LDX:
+task:

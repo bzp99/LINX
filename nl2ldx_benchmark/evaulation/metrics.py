@@ -135,7 +135,7 @@ def build_tree_rec(lines, line_number):
     node = Node("node")  # no importance for the label
     if "children" in line or "descendants" in line:  # TODO handle also descendants
         keyword = "children" if "children" in line else "descendants"
-        children = line[line.find(keyword) + 9:].split(",")
+        children = line[line.find(keyword) + len(keyword) + 1:].split(",")
         for child_name in children:
             line_number[0] += 1
             if child_name == "*":

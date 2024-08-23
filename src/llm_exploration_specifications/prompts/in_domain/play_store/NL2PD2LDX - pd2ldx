@@ -163,11 +163,3 @@ LDX:
 
 Now convert the following while making sure '[' is closed by ']' and not by other parenthesis.
 Pandas:
-df = pd.read_csv("play_store.tsv", delimiter="	")
-
-subset1 = df[df[<COL1>] == <VALUE1>]
-subset2 = df[df[<COL2>] == <VALUE2>]
-
-subset1_max_price = subset1['price'].max()
-subset2_max_price = subset2['price'].max()
-LDX:

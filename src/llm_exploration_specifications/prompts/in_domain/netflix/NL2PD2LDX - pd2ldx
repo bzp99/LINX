@@ -163,12 +163,3 @@ LDX:
 
 Now convert the following while making sure '[' is closed by ']' and not by other parenthesis.
 Pandas:
-df = pd.read_csv("netflix.tsv", delimiter="	")
-
-do_some_operations()
-
-shows_2020 = df[df['release_year'] == 2020]
-
-shows_2020_properties1 = shows_2020.groupby(<COL1>).agg(<AGG1>)
-shows_2020_properties2 = shows_2020.groupby(<COL2>).agg(<AGG2>)
-LDX:
